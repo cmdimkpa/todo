@@ -30,7 +30,7 @@ class DBConnector:
         self.response = http.post(process_url,json.dumps(payload),headers={"Content-Type":"application/json"})
 
 # database connector (instance of class pointing to target host and port)
-dbconnect = DBConnector("localhost",9271)
+dbconnect = DBConnector("3.130.5.83",9271)
 
 # send HTTP Response
 def responsify(status,message,data={}):
