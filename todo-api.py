@@ -4,7 +4,7 @@
 #---------------------------------------
 
 # import required modules
-from flask import Flask, Response
+from flask import Flask, Response, render_template, request, redirect
 from flask_cors import CORS
 import requests as http
 import json
@@ -30,7 +30,7 @@ class DBConnector:
         self.response = http.post(process_url,json.dumps(payload),headers={"Content-Type":"application/json"})
 
 # database connector (instance of class pointing to target host and port)
-dbconnect = DBConnector("3.130.5.83",9271)
+dbconnect = DBConnector("localhost",9271)
 
 # send HTTP Response
 def responsify(status,message,data={}):
@@ -42,10 +42,9 @@ def responsify(status,message,data={}):
         return Response(str(a_dict), status=code, mimetype='application/json')
 
 # create a new task
-@app.route("/todo/api/v1/new-task/<path:task_name>")
 def new_task(task_name):
     dbconnect.dbTask("new_record","todo-task",{},{"name":task_name,"status":0})
-    return responsify(dbconnect.response.status_code,"Task Created",dbconnect.response.json()["data"])
+    return dbconnect.response.status_code
 
 # remove a task
 @app.route("/todo/api/v1/remove-task/<path:task_name>")
@@ -59,11 +58,47 @@ def complete_task(task_name):
     dbconnect.dbTask("update_records","todo-task",{"name":task_name},{"status":1})
     return responsify(dbconnect.response.status_code,"Task Completed",dbconnect.response.json()["data"])
 
+# serve files
+@app.route("/files/<path:filename>")
+def get_file(filename):
+    try:
+        return app.send_static_file(filename)
+    except:
+        return "<h1> Error Serving File: %s <h1>" % filename
+
 # fetch tasks
-@app.route("/todo/api/v1/fetch-tasks")
 def fetch_tasks():
     dbconnect.dbTask("fetch_records","todo-task",{})
-    return responsify(dbconnect.response.status_code,"All Tasks",dbconnect.response.json()["data"])
+    return dbconnect.response.json()["data"]
+
+def generate_button(text,status):
+    colors = {0:"#ff0000",1:"#4CAF50"}
+    button = '<button class="button" style="background-color:%s" data-status="%s">%s</button><br>' % (colors[status],status,text)
+    return button
+
+def get_dynamic():
+    all_tasks = fetch_tasks()
+    UNDONE_TASKS_HTML = ""; done_array = []
+    for task in all_tasks:
+        if task["status"]:
+            done_array.append(generate_button(task["name"],task["status"]))
+        else:
+            UNDONE_TASKS_HTML+=generate_button(task["name"],task["status"])
+    DONE_TASKS_HTML = "".join(done_array[::-1])
+    return UNDONE_TASKS_HTML,DONE_TASKS_HTML
+
+# render page
+@app.route("/todo.app")
+def render_page():
+    UNDONE_TASKS_HTML,DONE_TASKS_HTML = get_dynamic()
+    return render_template("todo.html",UNDONE_TASKS_HTML=UNDONE_TASKS_HTML,DONE_TASKS_HTML=DONE_TASKS_HTML)
+
+# form input
+@app.route("/todo/api/v1/post")
+def form():
+    task_name = dict(request.args)["mydata"][0]
+    status = new_task(task_name)
+    return redirect("http://localhost:5000/todo.app",302)
 
 if __name__ == "__main__":
     app.run()
