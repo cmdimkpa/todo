@@ -59,11 +59,10 @@
 <script type="text/javascript">
   $(".button").click(function(){
     if($(this).data("status") == "0"){
-      $.get("http://localhost:5000/todo/api/v1/complete-task/"+$(this).text(),function(data){});
+      $.get("http://localhost:5000/todo/api/v1/complete-task/"+$(this).text(),function(data){window.location.reload(true)});
     }else{
-      $.get("http://localhost:5000/todo/api/v1/remove-task/"+$(this).text(),function(data){});
+      $.get("http://localhost:5000/todo/api/v1/remove-task/"+$(this).text(),function(data){window.location.reload(true)});
     }
-    window.location.reload(true)
   });
 </script>
 </body>
